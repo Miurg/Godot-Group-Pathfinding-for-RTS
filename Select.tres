@@ -1,0 +1,9 @@
+[gd_resource type="TorusMesh" load_steps=2 format=3 uid="uid://b5ny0qdub2x72"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tf8dh"]
+albedo_color = Color(1, 0, 0, 1)
+
+[resource]
+material = SubResource("StandardMaterial3D_tf8dh")
+inner_radius = 0.838
+outer_radius = 1.138
