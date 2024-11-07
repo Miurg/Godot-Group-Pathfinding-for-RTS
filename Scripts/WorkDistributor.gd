@@ -35,9 +35,6 @@ func movePlayer(position:Vector3):
 		i.moveMarker(position)
 
 
-func _process(delta: float) -> void:
-	pass
-
 var map: RID
 func createMap():
 	map = NavigationServer3D.map_create()

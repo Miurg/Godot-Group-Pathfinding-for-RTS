@@ -18,14 +18,14 @@ var allPath = []
 
 var numberOfPathForEach = []
 var localPositionOfUnit = [[]]
-var centerPositionOfSquad
+var centerPositionOfSquad = Vector3(0,0,0)
 
 #z> = 0, z< = 1, x> = 2, x< = 3
 var rectangleSquadPos = [0,0,0,0]
 var rectangleSquad
 var rectangleMesh = load("res://Box.tres")
-var currentSquadCenterPosition = Vector3(0,0,0)
 
+@onready var squadAgent = $NavigationAgent3D
 
 var y = 30
 var x = 10
@@ -100,7 +100,7 @@ func _ready():
 			
 	await get_tree().physics_frame
 	await get_tree().physics_frame
-	findPathForEachUnit(allChildMainMeshPosition[allChildMainMesh.size()/2].origin)
+	findPathForEachUnit(centerPositionOfSquad)
 
 	
 
@@ -109,6 +109,7 @@ func _process(delta):
 		return
 	checkAndMove(delta)
 	rectangleProcess()
+	global_position = centerPositionOfSquad
 
 
 
@@ -161,22 +162,17 @@ func rectangleProcess():
 	rectangleSquadPos[1] = (rectangleSquadPos[0]+rectangleSquadPos[1])/2
 	rectangleSquadPos[2] = (rectangleSquadPos[2]+rectangleSquadPos[3])/2
 	rectangleSquadPos[3] = (rectangleSquadPos[2]+rectangleSquadPos[3])/2
-	
-func selectedTrue():
-	for i in allChildSelectMesh:
-		RenderingServer.instance_set_visible(i,true)
-
-func selectedFalse():
-	for i in allChildSelectMesh:
-		RenderingServer.instance_set_visible(i,false)
 
 func moveMarker(newPosition:Vector3):
+	squadAgent.target_position = newPosition
 	allSquadPath.clear()
 	allSquadPath = workDistributor.getPath(centerPositionOfSquad,newPosition)
 	#allSquadPath.remove_at(0)
 	numberOfPathForEach.clear()
 	for i in allChildMainMesh.size():
 		numberOfPathForEach.append(allSquadPath.size())
+		allPath[i].clear()
+		#currentPath[i].clear()
 	#currentSquadPath = allSquadPath[0]
 	#allSquadPath.remove_at(0)
 	#findPathForEachUnit(allChildMainMeshPosition[0].origin)
@@ -200,3 +196,20 @@ func findPathForEachUnit(nextPath):
 			Vector3(nextPath.x+localPositionOfUnit[i][0],nextPath.y,nextPath.z+localPositionOfUnit[i][1])) 
 		currentPath.append(allPath[i][0])
 		allPath[i].remove_at(0)
+		
+		
+func selectedTrue():
+	for i in allChildSelectMesh:
+		RenderingServer.instance_set_visible(i,true)
+
+func selectedFalse():
+	for i in allChildSelectMesh:
+		RenderingServer.instance_set_visible(i,false)
+		
+func isInRange(firstPoint:Vector2,secondPoint:Vector2):
+	for i in allChildMainMeshPosition:
+		if (i.origin.x>firstPoint.x and i.origin.z<firstPoint.y and i.origin.x<secondPoint.x and i.origin.z>secondPoint.y):
+			return true
+	return false
+			
+	

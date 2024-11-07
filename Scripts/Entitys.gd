@@ -7,8 +7,6 @@ func _ready():
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
-	pass
 var entitysSelected = []
 func findSelected(firstPoint:Vector2,secondPoint:Vector2):
 	for i in entitysSelected:
@@ -16,9 +14,9 @@ func findSelected(firstPoint:Vector2,secondPoint:Vector2):
 	var entitys = get_children()
 	entitysSelected.clear()
 	for i in entitys:
-		if (i.position.x>firstPoint.x and i.position.z<firstPoint.y and i.position.x<secondPoint.x and i.position.z>secondPoint.y):
-			entitysSelected.push_front(i)
+		if i.isInRange(firstPoint,secondPoint):
 			i.selectedTrue()
+			entitysSelected.push_front(i)
 	workDistributor.selectedEntitys.clear()
 	workDistributor.selectedEntitys.append_array(entitysSelected)
 	
