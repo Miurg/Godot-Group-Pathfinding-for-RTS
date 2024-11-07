@@ -2,26 +2,39 @@ extends Node3D
 
 @onready var workDistributor = $"../.."
 var oneUnitNode = preload("res://OneUnit.tscn")
+
+
 var allChildMainMesh = []
 var allChildSelectMesh = []
 var allChildMainMeshPosition = []
 var allChildSelectMeshPosition = []
+var allChildAgents = []
 var capsuleMesh = CapsuleMesh.new()
 var torusMesh = load("res://Select.tres")
 
-var currentSquadPosition = Vector3(10,2,30)
 var allSquadPath = []
 var currentPath = []
 var allPath = []
+
 var numberOfPathForEach = []
-var rows = 10
-var columns = 30
+var localPositionOfUnit = [[]]
+var centerPositionOfSquad
+
+#z> = 0, z< = 1, x> = 2, x< = 3
+var rectangleSquadPos = [0,0,0,0]
+var rectangleSquad
+var rectangleMesh = load("res://Box.tres")
+var currentSquadCenterPosition = Vector3(0,0,0)
+
+
+var y = 30
+var x = 10
 
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	for i in rows:
-		for j in columns:
+	for i in y:
+		for j in x:
 			var instanceMain = RenderingServer.instance_create()
 			var instanceSelect = RenderingServer.instance_create()
 			var scenario = get_world_3d().scenario
@@ -44,27 +57,62 @@ func _ready():
 			
 			allChildMainMesh.append(instanceMain)
 			allChildSelectMesh.append(instanceSelect)
-	await get_tree().physics_frame
-	await get_tree().physics_frame
+			
+			allChildAgents.append(NavigationServer3D.agent_create())
+			
+
+		
+		
+		
+	var j = -1
+	var k = 0
+	
+	rectangleSquad = RenderingServer.instance_create()
+	RenderingServer.instance_set_scenario(rectangleSquad, get_world_3d().scenario)
+	RenderingServer.instance_set_base(rectangleSquad, rectangleMesh)
+	RenderingServer.instance_set_transform(rectangleSquad, Transform3D(Basis(), Vector3(5, 2, 5)))
+	
+	
 	for i in allChildMainMesh.size():
 		numberOfPathForEach.append(0)
-	var j = 0
-	var k = 0
-	for i in allChildMainMesh.size():
-		if j == rows:
+		if j == y-1:
 			k+=1
 			j=0
 		else: j+=1
 		localPositionOfUnit.append([])
 		localPositionOfUnit[i].append(k)
 		localPositionOfUnit[i].append(j)
+		
+		if allChildMainMeshPosition[i].origin.z > rectangleSquadPos[0]:
+			rectangleSquadPos[0] = allChildMainMeshPosition[i].origin.z
+		if allChildMainMeshPosition[i].origin.z < rectangleSquadPos[1]:
+			rectangleSquadPos[1] = allChildMainMeshPosition[i].origin.z
+		if allChildMainMeshPosition[i].origin.x > rectangleSquadPos[2]:
+			rectangleSquadPos[2] = allChildMainMeshPosition[i].origin.x
+		if allChildMainMeshPosition[i].origin.x < rectangleSquadPos[3]:
+			rectangleSquadPos[3] = allChildMainMeshPosition[i].origin.x
+	
+	RenderingServer.instance_set_transform(rectangleSquad, Transform3D(
+		Vector3(abs(abs((rectangleSquadPos[2]+rectangleSquadPos[3])/2)-abs(rectangleSquadPos[2])),0,0),
+		Vector3(0,1,0),
+		Vector3(0,0,abs(abs((rectangleSquadPos[0]+rectangleSquadPos[1])/2)-abs(rectangleSquadPos[0]))), 
+		Vector3((rectangleSquadPos[2]+rectangleSquadPos[3])/2, 2, (rectangleSquadPos[0]+rectangleSquadPos[1])/2)))
+			
+	await get_tree().physics_frame
+	await get_tree().physics_frame
 	findPathForEachUnit(allChildMainMeshPosition[allChildMainMesh.size()/2].origin)
+
 	
-	
-func _physics_process(delta):
-	#var numberMeshWhoReachedCurrentSquadPath = 0
+
+func _process(delta):
 	if currentPath.size()==0:
 		return
+	checkAndMove(delta)
+	rectangleProcess()
+
+
+
+func checkAndMove(delta):
 	for i in allChildMainMesh.size():
 		if allChildMainMeshPosition[i].origin==currentPath[i] and !allPath[i].is_empty():
 			currentPath[i] = allPath[i][0]
@@ -83,12 +131,36 @@ func _physics_process(delta):
 			allChildMainMeshPosition[i].origin.y-1,
 			allChildMainMeshPosition[i].origin.z)))
 
-	#if numberMeshWhoReachedCurrentSquadPath == allChildMainMesh.size() and !allSquadPath.is_empty():
-		#currentSquadPath = allSquadPath[0]
-		#allSquadPath.remove_at(0)
-		#findPathForEachUnit(currentSquadPath)
-
-
+func rectangleProcess():
+	for i in allChildMainMesh.size():
+		if allChildMainMeshPosition[i].origin.z > rectangleSquadPos[0]:
+			rectangleSquadPos[0] = allChildMainMeshPosition[i].origin.z
+		elif allChildMainMeshPosition[i].origin.z < rectangleSquadPos[1]:
+			rectangleSquadPos[1] = allChildMainMeshPosition[i].origin.z
+		if allChildMainMeshPosition[i].origin.x > rectangleSquadPos[2]:
+			rectangleSquadPos[2] = allChildMainMeshPosition[i].origin.x
+		elif allChildMainMeshPosition[i].origin.x < rectangleSquadPos[3]:
+			rectangleSquadPos[3] = allChildMainMeshPosition[i].origin.x
+	var distanceX
+	var distanceZ 
+	if rectangleSquadPos[1]<0 and rectangleSquadPos[0]>0:
+		distanceX = abs(rectangleSquadPos[1])+abs(rectangleSquadPos[0])
+	else:
+		distanceX = abs(rectangleSquadPos[0]-rectangleSquadPos[1])
+	if rectangleSquadPos[3]<0 and rectangleSquadPos[2]>0:
+		distanceZ = abs(rectangleSquadPos[3])+abs(rectangleSquadPos[2])
+	else:
+		distanceZ = abs(rectangleSquadPos[2]-rectangleSquadPos[3])
+	centerPositionOfSquad = Vector3((rectangleSquadPos[2]+rectangleSquadPos[3])/2, 2, (rectangleSquadPos[0]+rectangleSquadPos[1])/2)
+	RenderingServer.instance_set_transform(rectangleSquad, Transform3D(
+		Vector3(distanceZ,0,0),
+		Vector3(0,1,0),
+		Vector3(0,0,distanceX), 
+		centerPositionOfSquad))
+	rectangleSquadPos[0] = (rectangleSquadPos[0]+rectangleSquadPos[1])/2
+	rectangleSquadPos[1] = (rectangleSquadPos[0]+rectangleSquadPos[1])/2
+	rectangleSquadPos[2] = (rectangleSquadPos[2]+rectangleSquadPos[3])/2
+	rectangleSquadPos[3] = (rectangleSquadPos[2]+rectangleSquadPos[3])/2
 	
 func selectedTrue():
 	for i in allChildSelectMesh:
@@ -100,7 +172,7 @@ func selectedFalse():
 
 func moveMarker(newPosition:Vector3):
 	allSquadPath.clear()
-	allSquadPath = workDistributor.getPath(allChildMainMeshPosition[allChildMainMesh.size()/2].origin,newPosition)
+	allSquadPath = workDistributor.getPath(centerPositionOfSquad,newPosition)
 	#allSquadPath.remove_at(0)
 	numberOfPathForEach.clear()
 	for i in allChildMainMesh.size():
@@ -110,15 +182,12 @@ func moveMarker(newPosition:Vector3):
 	#findPathForEachUnit(allChildMainMeshPosition[0].origin)
 	
 
-var localPositionOfUnit = [[]]
-
 func findPathForOneUnit(nextPath, numberMesh):
 	allPath[numberMesh].clear()
 	allPath[numberMesh] = workDistributor.getPath(allChildMainMeshPosition[numberMesh].origin,
-			Vector3(nextPath.x+localPositionOfUnit[numberMesh][0],nextPath.y,nextPath.z+localPositionOfUnit[numberMesh][1])) 
+			Vector3(nextPath.x+localPositionOfUnit[numberMesh][0]-x/2,nextPath.y,nextPath.z+localPositionOfUnit[numberMesh][1]-y/2)) 
 	currentPath.append(allPath[numberMesh][0])
 	allPath[numberMesh].remove_at(0)
-	
 	
 
 
