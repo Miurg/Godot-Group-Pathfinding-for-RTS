@@ -60,19 +60,9 @@ func _ready():
 			
 			allChildAgents.append(NavigationServer3D.agent_create())
 			
-
-		
-		
 		
 	var j = -1
 	var k = 0
-	
-	rectangleSquad = RenderingServer.instance_create()
-	RenderingServer.instance_set_scenario(rectangleSquad, get_world_3d().scenario)
-	RenderingServer.instance_set_base(rectangleSquad, rectangleMesh)
-	RenderingServer.instance_set_transform(rectangleSquad, Transform3D(Basis(), Vector3(5, 2, 5)))
-	
-	
 	for i in allChildMainMesh.size():
 		numberOfPathForEach.append(0)
 		if j == y-1:
@@ -83,28 +73,22 @@ func _ready():
 		localPositionOfUnit[i].append(k)
 		localPositionOfUnit[i].append(j)
 		
-		if allChildMainMeshPosition[i].origin.z > rectangleSquadPos[0]:
-			rectangleSquadPos[0] = allChildMainMeshPosition[i].origin.z
-		if allChildMainMeshPosition[i].origin.z < rectangleSquadPos[1]:
-			rectangleSquadPos[1] = allChildMainMeshPosition[i].origin.z
-		if allChildMainMeshPosition[i].origin.x > rectangleSquadPos[2]:
-			rectangleSquadPos[2] = allChildMainMeshPosition[i].origin.x
-		if allChildMainMeshPosition[i].origin.x < rectangleSquadPos[3]:
-			rectangleSquadPos[3] = allChildMainMeshPosition[i].origin.x
+		
+	rectangleSquad = RenderingServer.instance_create()
+	RenderingServer.instance_set_scenario(rectangleSquad, get_world_3d().scenario)
+	RenderingServer.instance_set_base(rectangleSquad, rectangleMesh)
+	RenderingServer.instance_set_transform(rectangleSquad, Transform3D(Basis(), Vector3(5, 2, 5)))
+	rectangleProcess()
 	
-	RenderingServer.instance_set_transform(rectangleSquad, Transform3D(
-		Vector3(abs(abs((rectangleSquadPos[2]+rectangleSquadPos[3])/2)-abs(rectangleSquadPos[2])),0,0),
-		Vector3(0,1,0),
-		Vector3(0,0,abs(abs((rectangleSquadPos[0]+rectangleSquadPos[1])/2)-abs(rectangleSquadPos[0]))), 
-		Vector3((rectangleSquadPos[2]+rectangleSquadPos[3])/2, 2, (rectangleSquadPos[0]+rectangleSquadPos[1])/2)))
-			
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	findPathForEachUnit(centerPositionOfSquad)
+	
 
 	
 
 func _process(delta):
+	squadAgent.get_next_path_position()
 	if currentPath.size()==0:
 		return
 	checkAndMove(delta)
@@ -122,7 +106,6 @@ func checkAndMove(delta):
 			numberOfPathForEach[i]-=1
 			if numberOfPathForEach[i]>0:
 				findPathForOneUnit(allSquadPath[allSquadPath.size()-numberOfPathForEach[i]], i)
-				#numberMeshWhoReachedCurrentSquadPath+=1
 		if allChildMainMeshPosition[i].origin!=currentPath[i]:
 			allChildMainMeshPosition[i] = Transform3D(Basis(),
 				allChildMainMeshPosition[i].origin.move_toward(currentPath[i], delta * 10))
