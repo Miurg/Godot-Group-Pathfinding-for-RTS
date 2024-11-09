@@ -15,18 +15,25 @@ func _ready():
 	
 var mouseButtonMiddlePressed = false
 var mouseButtonLeftPressed = false
+var camMoveForX
+var camMoveForZ
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta):
 	if mouseButtonMiddlePressed:
-		mainCamera.position = Vector3(((camPositionStartMove.x+(mousePositionForMiddle.y*(mainCamera.position.y/500))) - (get_viewport().get_mouse_position().y*(mainCamera.position.y/500))),
-		camPositionStartMove.y,
-		((camPositionStartMove.z-(mousePositionForMiddle.x*(mainCamera.position.y/500))) + (get_viewport().get_mouse_position().x*(mainCamera.position.y/500))))
+		rayStart = mainCamera.project_ray_origin(get_viewport().get_mouse_position())
+		rayEnd = rayStart + mainCamera.project_ray_normal(get_viewport().get_mouse_position()) * RAY_LENGTH
+		if space_state != null:
+			var query = PhysicsRayQueryParameters3D.create(rayStart, rayEnd, 1)
+			if space_state.intersect_ray(query).has("position"): 
+				rayPosition = space_state.intersect_ray(query).position
 		
-	
+		mainCamera.position = Vector3((mainCamera.position.x+(mousePositionForMiddeLast.x - rayPosition.x)),
+		mainCamera.position.y,
+		(mainCamera.position.z+(mousePositionForMiddeLast.z - rayPosition.z)))
 
-		
 var mousePositionForLeft = Vector2()
-var mousePositionForMiddle = Vector2()
+var mousePositionForMiddleCurrent = Vector3()
+var mousePositionForMiddeLast = Vector3()
 var camPositionStartMove = Vector3()
 var camPositionStartWheel = Vector3()
 var camPositionTargetWheel = Vector3()
@@ -34,12 +41,19 @@ var selectFirstPoint = Vector3()
 var selectSecondPoint = Vector3()
 var rayStart
 var rayEnd
+var rayPosition
 
 func _input(event):
 	if event is InputEventMouseButton:
+		rayStart = mainCamera.project_ray_origin(get_viewport().get_mouse_position())
+		rayEnd = rayStart + mainCamera.project_ray_normal(get_viewport().get_mouse_position()) * RAY_LENGTH
+		if space_state != null:
+			var query = PhysicsRayQueryParameters3D.create(rayStart, rayEnd, 1)
+			if space_state.intersect_ray(query).has("position"): 
+				rayPosition = space_state.intersect_ray(query).position
 		if event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
-			mousePositionForMiddle = get_viewport().get_mouse_position()
-			camPositionStartMove = mainCamera.position
+			mousePositionForMiddeLast = rayPosition
+			print_debug(mousePositionForMiddeLast)
 			mouseButtonMiddlePressed = true
 		else: 
 			mouseButtonMiddlePressed = false 
@@ -52,35 +66,13 @@ func _input(event):
 			mainCamera.transform = camPositionTargetWheel
 			
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			rayStart = mainCamera.project_ray_origin(event.position)
-			rayEnd = rayStart + mainCamera.project_ray_normal(event.position) * RAY_LENGTH
-			
-			if space_state != null:
-				var query = PhysicsRayQueryParameters3D.create(rayStart, rayEnd, 1)
-				if space_state.intersect_ray(query).has("position"): 
-					workDistributor.movePlayer(space_state.intersect_ray(query).position)
+			workDistributor.movePlayer(rayPosition)
 		
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			mouseButtonLeftPressed = true
-			
-			mousePositionForLeft = get_viewport().get_mouse_position()
-			
-			rayStart = mainCamera.project_ray_origin(event.position)
-			rayEnd = rayStart + mainCamera.project_ray_normal(event.position) * RAY_LENGTH
-			
-			if space_state != null:
-				var query = PhysicsRayQueryParameters3D.create(rayStart, rayEnd, 1)
-				if space_state.intersect_ray(query).has("position"): 
-					selectFirstPoint = space_state.intersect_ray(query).position
+			selectFirstPoint = rayPosition
 
 		elif event.button_index == MOUSE_BUTTON_LEFT and !event.pressed:
 			mouseButtonLeftPressed = false
-			
-			rayStart = mainCamera.project_ray_origin(event.position)
-			rayEnd = rayStart + mainCamera.project_ray_normal(event.position) * RAY_LENGTH
-			
-			if space_state != null:
-				var query = PhysicsRayQueryParameters3D.create(rayStart, rayEnd, 1)
-				if space_state.intersect_ray(query).has("position"): 
-					selectSecondPoint = space_state.intersect_ray(query).position
-					workDistributor.mouseSelect(selectFirstPoint, selectSecondPoint)
+			selectSecondPoint = rayPosition
+			workDistributor.mouseSelect(selectFirstPoint, selectSecondPoint)
