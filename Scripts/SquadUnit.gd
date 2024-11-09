@@ -1,8 +1,6 @@
 extends Node3D
 
-@onready var workDistributor = $"../.."
-var oneUnitNode = preload("res://OneUnit.tscn")
-
+@onready var mapAndPath = $"../../Map"
 
 var allChildMainMesh = []
 var allChildSelectMesh = []
@@ -83,7 +81,8 @@ func _ready():
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	findPathForEachUnit(centerPositionOfSquad)
-	
+	space_state = get_tree().get_root().get_world_3d().direct_space_state
+var space_state
 
 	
 
@@ -114,6 +113,12 @@ func checkAndMove(delta):
 			Transform3D(Basis(),Vector3(allChildMainMeshPosition[i].origin.x,
 			allChildMainMeshPosition[i].origin.y-1,
 			allChildMainMeshPosition[i].origin.z)))
+			#var rayStart = allChildMainMeshPosition[i].origin*10
+			#var rayEnd = rayStart + allChildMainMeshPosition[i].origin * 1000
+			#if space_state != null:
+				#var query = PhysicsRayQueryParameters3D.create(rayStart, rayEnd, 1)
+				#if space_state.intersect_ray(query).has("position"): 
+					#var rayPosition = space_state.intersect_ray(query).position
 
 func rectangleProcess():
 	for i in allChildMainMesh.size():
@@ -149,7 +154,7 @@ func rectangleProcess():
 func moveMarker(newPosition:Vector3):
 	squadAgent.target_position = newPosition
 	allSquadPath.clear()
-	allSquadPath = workDistributor.getPath(centerPositionOfSquad,newPosition)
+	allSquadPath = mapAndPath.getPath(centerPositionOfSquad,newPosition)
 	#allSquadPath.remove_at(0)
 	numberOfPathForEach.clear()
 	for i in allChildMainMesh.size():
@@ -163,7 +168,7 @@ func moveMarker(newPosition:Vector3):
 
 func findPathForOneUnit(nextPath, numberMesh):
 	allPath[numberMesh].clear()
-	allPath[numberMesh] = workDistributor.getPath(allChildMainMeshPosition[numberMesh].origin,
+	allPath[numberMesh] = mapAndPath.getPath(allChildMainMeshPosition[numberMesh].origin,
 			Vector3(nextPath.x+localPositionOfUnit[numberMesh][0]-x/2,nextPath.y,nextPath.z+localPositionOfUnit[numberMesh][1]-y/2)) 
 	currentPath.append(allPath[numberMesh][0])
 	allPath[numberMesh].remove_at(0)
@@ -175,7 +180,7 @@ func findPathForEachUnit(nextPath):
 	currentPath.clear()
 	for i in allChildMainMesh.size():
 		allPath.append([])
-		allPath[i] = workDistributor.getPath(allChildMainMeshPosition[i].origin,
+		allPath[i] = mapAndPath.getPath(allChildMainMeshPosition[i].origin,
 			Vector3(nextPath.x+localPositionOfUnit[i][0],nextPath.y,nextPath.z+localPositionOfUnit[i][1])) 
 		currentPath.append(allPath[i][0])
 		allPath[i].remove_at(0)
