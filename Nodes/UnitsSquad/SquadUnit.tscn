@@ -4,3 +4,6 @@
 
 [node name="SquadUnit" type="Node3D"]
 script = ExtResource("1_xeafj")
+
+[node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
+debug_enabled = true
