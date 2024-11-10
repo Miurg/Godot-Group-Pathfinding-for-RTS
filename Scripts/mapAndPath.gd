@@ -79,7 +79,7 @@ static func create_region_chunks(chunks_root_node: Node, p_source_geometry: Navi
 			var chunk_navmesh: NavigationMesh = NavigationMesh.new()
 			chunk_navmesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
 			chunk_navmesh.cell_size = cell_size
-			chunk_navmesh.cell_height = cell_size
+			chunk_navmesh.cell_height = 0.1
 			chunk_navmesh.filter_baking_aabb = baking_bounds
 			chunk_navmesh.border_size = p_chunk_size
 			chunk_navmesh.agent_radius = p_agent_radius
@@ -138,7 +138,6 @@ static func calculate_source_geometry_bounds(p_source_geometry: NavigationMeshSo
 	
 	
 func getPath(startPoint, finalPoint):
-	print_debug("rtr")
 	var map: RID = get_world_3d().navigation_map
 	var path = ramer_douglas_peucker(NavigationServer3D.map_get_path(map,startPoint,finalPoint,true),ramerDouglasPeuckerValue)
 	return path
