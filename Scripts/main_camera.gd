@@ -53,7 +53,6 @@ func _input(event):
 				rayPosition = space_state.intersect_ray(query).position
 		if event.button_index == MOUSE_BUTTON_MIDDLE and event.pressed:
 			mousePositionForMiddeLast = rayPosition
-			print_debug(mousePositionForMiddeLast)
 			mouseButtonMiddlePressed = true
 		else: 
 			mouseButtonMiddlePressed = false 
