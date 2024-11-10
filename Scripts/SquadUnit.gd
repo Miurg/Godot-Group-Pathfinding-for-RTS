@@ -2,21 +2,22 @@ extends Node3D
 
 @onready var mapAndPath = $"../../Map"
 
-var allChildMainMesh = []
-var allChildSelectMesh = []
-var allChildMainMeshPosition = []
-var allChildSelectMeshPosition = []
-var allChildAgents = []
-var capsuleMesh = CapsuleMesh.new()
+var sizeOfSquad:int = 300
+var allChildMainMesh:Array[RID]
+var allChildSelectMesh:Array[RID]
+var allChildMainMeshPosition:Array[Transform3D]
+var allChildSelectMeshPosition:Array[Transform3D]
+var capsuleMesh = load("res://Mesh/2untitled.obj")
 var torusMesh = load("res://Select.tres")
 
-var allSquadPath = []
-var currentPath = []
-var allPath = []
+var allSquadPath:PackedVector3Array
+var currentPath:Array[Vector3]
+var allPath:Array[PackedVector3Array]
+var pathComplete:Array[bool]
 
-var numberOfPathForEach = []
-var localPositionOfUnit = [[]]
-var centerPositionOfSquad = Vector3(0,0,0)
+var numberOfPathForEach:Array[int]
+var localPositionOfUnit:Array[Array]
+var centerPositionOfSquad:Vector3 = Vector3(0,0,0)
 
 #z> = 0, z< = 1, x> = 2, x< = 3
 var rectangleSquadPos = [0,0,0,0]
@@ -25,51 +26,49 @@ var rectangleMesh = load("res://Box.tres")
 
 @onready var squadAgent = $NavigationAgent3D
 
-var y = 30
-var x = 10
-
+var formationPositions:Array[Vector2] 
+var formationHorizontalSize:int = 30
+var formationSpred:float = 1
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
-	for i in y:
-		for j in x:
-			var instanceMain = RenderingServer.instance_create()
-			var instanceSelect = RenderingServer.instance_create()
-			var scenario = get_world_3d().scenario
-			RenderingServer.instance_set_scenario(instanceMain, scenario)
-			RenderingServer.instance_set_scenario(instanceSelect, scenario)
+	for i in sizeOfSquad:
+		var instanceMain = RenderingServer.instance_create()
+		var instanceSelect = RenderingServer.instance_create()
+		var scenario = get_world_3d().scenario
+		RenderingServer.instance_set_scenario(instanceMain, scenario)
+		RenderingServer.instance_set_scenario(instanceSelect, scenario)
 			
-			RenderingServer.instance_set_base(instanceMain, capsuleMesh)
-			RenderingServer.instance_set_base(instanceSelect, torusMesh)
+		RenderingServer.instance_set_base(instanceMain, capsuleMesh)
+		RenderingServer.instance_set_base(instanceSelect, torusMesh)
 			
-			var xformMain = Transform3D(Basis(), Vector3(i+2, 2, j+2))
-			var xformSelect = Transform3D(Basis(), Vector3(i+2, 19, j+2))
+		var xformMain = Transform3D(Basis(), Vector3(0, 0, 0))
+		var xformSelect = Transform3D(Basis(), Vector3(0, 19, 0))
 			
-			RenderingServer.instance_set_transform(instanceMain, xformMain)
-			RenderingServer.instance_set_transform(instanceSelect, xformSelect)
+		RenderingServer.instance_set_transform(instanceMain, xformMain)
+		RenderingServer.instance_set_transform(instanceSelect, xformSelect)
 			
-			allChildMainMeshPosition.append(xformMain)
-			allChildSelectMeshPosition.append(xformSelect)
+		allChildMainMeshPosition.append(xformMain)
+		allChildSelectMeshPosition.append(xformSelect)
 			
-			RenderingServer.instance_set_visible(instanceSelect,false)
+		RenderingServer.instance_set_visible(instanceSelect,false)
 			
-			allChildMainMesh.append(instanceMain)
-			allChildSelectMesh.append(instanceSelect)
-			
-			allChildAgents.append(NavigationServer3D.agent_create())
+		allChildMainMesh.append(instanceMain)
+		allChildSelectMesh.append(instanceSelect)
 			
 		
-	var j = -1
-	var k = 0
+	var Horizontal = -1
+	var Vertical = 0
 	for i in allChildMainMesh.size():
+		if Horizontal == formationHorizontalSize-1:
+			Vertical+=1
+			Horizontal=0
+		else: Horizontal+=1
+		print_debug(Horizontal)
+		formationPositions.append(Vector2(Vertical*formationSpred,(Horizontal*formationSpred)-(formationHorizontalSize*formationSpred)/2))
+		
+		pathComplete.append(true)
 		numberOfPathForEach.append(0)
-		if j == y-1:
-			k+=1
-			j=0
-		else: j+=1
-		localPositionOfUnit.append([])
-		localPositionOfUnit[i].append(k)
-		localPositionOfUnit[i].append(j)
 		
 		
 	rectangleSquad = RenderingServer.instance_create()
@@ -98,14 +97,18 @@ func _process(delta):
 
 func checkAndMove(delta):
 	for i in allChildMainMesh.size():
-		if allChildMainMeshPosition[i].origin==currentPath[i] and !allPath[i].is_empty():
+		if allChildMainMeshPosition[i].origin==currentPath[i]:
+			pathComplete[i] = true
+		if pathComplete[i] and !allPath[i].is_empty():
+			pathComplete[i] = false
 			currentPath[i] = allPath[i][0]
 			allPath[i].remove_at(0)
-		elif allChildMainMeshPosition[i].origin==currentPath[i] and allPath[i].is_empty():
-			numberOfPathForEach[i]-=1
+		elif pathComplete[i] and allPath[i].is_empty():
 			if numberOfPathForEach[i]>0:
 				findPathForOneUnit(allSquadPath[allSquadPath.size()-numberOfPathForEach[i]], i)
-		if allChildMainMeshPosition[i].origin!=currentPath[i]:
+			pathComplete[i] = false
+			numberOfPathForEach[i]-=1
+		if !pathComplete[i]:
 			allChildMainMeshPosition[i] = Transform3D(Basis(),
 				allChildMainMeshPosition[i].origin.move_toward(currentPath[i], delta * 10))
 			RenderingServer.instance_set_transform(allChildMainMesh[i], allChildMainMeshPosition[i])
@@ -155,36 +158,46 @@ func moveMarker(newPosition:Vector3):
 	squadAgent.target_position = newPosition
 	allSquadPath.clear()
 	allSquadPath = mapAndPath.getPath(centerPositionOfSquad,newPosition)
-	#allSquadPath.remove_at(0)
+	allSquadPath.remove_at(0)
 	numberOfPathForEach.clear()
 	for i in allChildMainMesh.size():
 		numberOfPathForEach.append(allSquadPath.size())
 		allPath[i].clear()
-		#currentPath[i].clear()
+		pathComplete[i] = true
 	#currentSquadPath = allSquadPath[0]
 	#allSquadPath.remove_at(0)
 	#findPathForEachUnit(allChildMainMeshPosition[0].origin)
 	
 
 func findPathForOneUnit(nextPath, numberMesh):
+	var angleToNextPositionInRad = Vector2(centerPositionOfSquad.x,centerPositionOfSquad.z).angle_to_point(Vector2(nextPath.x,nextPath.z))
+	var angleToNextPositionInDeg = snapped(remap(rad_to_deg(angleToNextPositionInRad),-180,180,0,360),1)
+	var angleToPath = deg_to_rad(angleToNextPositionInDeg)
 	allPath[numberMesh].clear()
 	allPath[numberMesh] = mapAndPath.getPath(allChildMainMeshPosition[numberMesh].origin,
-			Vector3(nextPath.x+localPositionOfUnit[numberMesh][0]-x/2,nextPath.y,nextPath.z+localPositionOfUnit[numberMesh][1]-y/2)) 
-	currentPath.append(allPath[numberMesh][0])
+			Vector3(nextPath.x+formationPositions[numberMesh].rotated(angleToPath).x,
+			nextPath.y,
+			nextPath.z + formationPositions[numberMesh].rotated(angleToPath).y))
+	currentPath[numberMesh] = allPath[numberMesh][0]
 	allPath[numberMesh].remove_at(0)
 	
 
 
 func findPathForEachUnit(nextPath):
+	var angleToNextPositionInRad = Vector2(centerPositionOfSquad.x,centerPositionOfSquad.z).angle_to_point(Vector2(nextPath.x,nextPath.z))
+	var angleToNextPositionInDeg = snapped(remap(rad_to_deg(angleToNextPositionInRad),-180,180,0,360),1)
+	var angleToPath = deg_to_rad(angleToNextPositionInDeg)
 	allPath.clear()
 	currentPath.clear()
 	for i in allChildMainMesh.size():
-		allPath.append([])
+		allPath.append(PackedVector3Array())
 		allPath[i] = mapAndPath.getPath(allChildMainMeshPosition[i].origin,
-			Vector3(nextPath.x+localPositionOfUnit[i][0],nextPath.y,nextPath.z+localPositionOfUnit[i][1])) 
+			Vector3(nextPath.x+formationPositions[i].rotated(angleToPath).x,
+			nextPath.y,
+			nextPath.z+formationPositions[i].rotated(angleToPath).y)) 
 		currentPath.append(allPath[i][0])
 		allPath[i].remove_at(0)
-		
+	
 		
 func selectedTrue():
 	for i in allChildSelectMesh:
