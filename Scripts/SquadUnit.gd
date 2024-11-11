@@ -28,7 +28,7 @@ var rectangleMesh = load("res://Box.tres")
 
 var formationPositions:Array[Vector2] 
 var formationHorizontalSize:int = 30
-var formationSpred:float = 1
+var formationSpred:float = 3
 var formationAngleToPath:Array[float]
 
 # Called when the node enters the scene tree for the first time.
@@ -62,7 +62,7 @@ func _ready():
 	var Vertical = 0
 	for i in allChildMainMesh.size():
 		if Horizontal == formationHorizontalSize-1:
-			Vertical+=1
+			Vertical-=1
 			Horizontal=0
 		else: Horizontal+=1
 		formationPositions.append(Vector2(Vertical*formationSpred,(Horizontal*formationSpred)-(formationHorizontalSize*formationSpred)/2))
@@ -162,7 +162,6 @@ func moveMarker(newPosition:Vector3):
 	formationAngleToPath.clear()
 	while (i<=allSquadPath.size()-1):
 		formationAngleToPath.append(Vector2(allSquadPath[i-1].x,allSquadPath[i-1].z).angle_to_point(Vector2(allSquadPath[i].x,allSquadPath[i].z)))
-		
 		i+=1
 	allSquadPath.remove_at(0)
 	numberOfPathForEach.clear()
