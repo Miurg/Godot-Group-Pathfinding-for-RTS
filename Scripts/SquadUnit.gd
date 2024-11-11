@@ -29,6 +29,7 @@ var rectangleMesh = load("res://Box.tres")
 var formationPositions:Array[Vector2] 
 var formationHorizontalSize:int = 30
 var formationSpred:float = 1
+var formationAngleToPath:Array[float]
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -64,7 +65,6 @@ func _ready():
 			Vertical+=1
 			Horizontal=0
 		else: Horizontal+=1
-		print_debug(Horizontal)
 		formationPositions.append(Vector2(Vertical*formationSpred,(Horizontal*formationSpred)-(formationHorizontalSize*formationSpred)/2))
 		
 		pathComplete.append(true)
@@ -105,7 +105,7 @@ func checkAndMove(delta):
 			allPath[i].remove_at(0)
 		elif pathComplete[i] and allPath[i].is_empty():
 			if numberOfPathForEach[i]>0:
-				findPathForOneUnit(allSquadPath[allSquadPath.size()-numberOfPathForEach[i]], i)
+				findPathForOneUnit(allSquadPath[allSquadPath.size()-numberOfPathForEach[i]], i,allSquadPath.size()-numberOfPathForEach[i])
 			pathComplete[i] = false
 			numberOfPathForEach[i]-=1
 		if !pathComplete[i]:
@@ -158,26 +158,25 @@ func moveMarker(newPosition:Vector3):
 	squadAgent.target_position = newPosition
 	allSquadPath.clear()
 	allSquadPath = mapAndPath.getPath(centerPositionOfSquad,newPosition)
+	var i = 1
+	formationAngleToPath.clear()
+	while (i<=allSquadPath.size()-1):
+		formationAngleToPath.append(Vector2(allSquadPath[i-1].x,allSquadPath[i-1].z).angle_to_point(Vector2(allSquadPath[i].x,allSquadPath[i].z)))
+		
+		i+=1
 	allSquadPath.remove_at(0)
 	numberOfPathForEach.clear()
-	for i in allChildMainMesh.size():
+	for j in allChildMainMesh.size():
 		numberOfPathForEach.append(allSquadPath.size())
-		allPath[i].clear()
-		pathComplete[i] = true
-	#currentSquadPath = allSquadPath[0]
-	#allSquadPath.remove_at(0)
-	#findPathForEachUnit(allChildMainMeshPosition[0].origin)
-	
+		allPath[j].clear()
+		pathComplete[j] = true
 
-func findPathForOneUnit(nextPath, numberMesh):
-	var angleToNextPositionInRad = Vector2(centerPositionOfSquad.x,centerPositionOfSquad.z).angle_to_point(Vector2(nextPath.x,nextPath.z))
-	var angleToNextPositionInDeg = snapped(remap(rad_to_deg(angleToNextPositionInRad),-180,180,0,360),1)
-	var angleToPath = deg_to_rad(angleToNextPositionInDeg)
+func findPathForOneUnit(nextPath, numberMesh, numberOfPath):
 	allPath[numberMesh].clear()
 	allPath[numberMesh] = mapAndPath.getPath(allChildMainMeshPosition[numberMesh].origin,
-			Vector3(nextPath.x+formationPositions[numberMesh].rotated(angleToPath).x,
+			Vector3(nextPath.x+formationPositions[numberMesh].rotated(formationAngleToPath[numberOfPath]).x,
 			nextPath.y,
-			nextPath.z + formationPositions[numberMesh].rotated(angleToPath).y))
+			nextPath.z + formationPositions[numberMesh].rotated(formationAngleToPath[numberOfPath]).y))
 	currentPath[numberMesh] = allPath[numberMesh][0]
 	allPath[numberMesh].remove_at(0)
 	
